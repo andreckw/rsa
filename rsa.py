@@ -9,24 +9,25 @@ class RSA():
     n = 0
     e = 2
     d = 2
-    testar = False
     texto_criptografado = False
-        
     
-    def criptografar(self, texto, testar = False):
-        self.testar = testar
-        primos = self._gerarprimos()
-        self.p = choice(primos)
-        while not self._isprimo(self.p):
+    
+    def criar_chaves(self, testar = False):
+        if not testar:
+            primos = self._gerarprimos()
             self.p = choice(primos)
-        
-        self.q = choice(primos)
-        while not self._isprimo(self.q) and self.q == self.p:
+            while not self._isprimo(self.p):
+                self.p = choice(primos)
+            
             self.q = choice(primos)
+            while not self._isprimo(self.q) and self.q == self.p:
+                self.q = choice(primos)
         
-        if self.testar:
-            self.p = 7
-            self.q = 11
+        else:
+            self.p = 17
+            self.q = 23
+        
+        
         self.totiente_n = (self.p - 1) * (self.q - 1)
         self.n = self.p * self.q
         
@@ -35,23 +36,51 @@ class RSA():
         
         while ((self.d * self.e) % self.totiente_n != 1) and self.d < self.totiente_n:
             self.d += 1
+
+        self._gerar_arquivo_chaves()
+        self._gerar_arquivo_params()
+    
+    def criptografar(self, texto, chave):
+        chaves = chave.split(",")
+        
+        self.e = int(chaves[0])
+        self.n = int(chaves[1])
         
         ascii = self._transformar_em_ascii(texto)
         retorno = ""
         
-        for a in ascii:
-            retorno += str((a ** self.e) % self.n)
+        for m in ascii:
+            retorno += f"{(m ** self.e) % self.n},"
+        
+        retorno = retorno[:len(retorno) - 1]
         
         self.texto_criptografado = retorno
         
-        self._gerar_arquivo_params()
         return retorno
     
     
-    def descriptografar(self, texto, d, n):
+    def descriptografar(self, texto):
         
-        for i in texto:
-            print(bin(int(i)))
+        with open("chave_privada.txt") as f:
+            chave = f.read()
+            chaves = chave.split(",")
+            d = int(chaves[0])
+            n = int(chaves[1])
+        
+        texto = texto.split(",")
+        
+        
+        texto_descript = ""
+        i = 0
+        for t in texto:
+            print(f"descriptografando: {i/len(texto)*100}%", end="\r")
+            m = (int(t) ** d) % n
+            texto_descript += chr(m)
+            i+=1
+        print()
+                
+        return texto_descript
+        
                 
     
     
@@ -72,13 +101,14 @@ class RSA():
     
     def _gerarprimos(self):
         x = 2
-        y = randint(2, 55001)
+        y = randint(2, 10**4)
         retorno = []
         
         for i in range(x-1, y):
+            print(f"Gerando primos {i/y*100}%", end="\r")
             if self._isprimo(i):
                 retorno.append(i)
-        
+        print()
         return retorno
     
     
@@ -92,9 +122,17 @@ class RSA():
         return retorno
 
     
+    def _gerar_arquivo_chaves(self):
+        
+        with open("chave_publica.txt", "w") as c:
+            c.write(f"{self.e},{self.n}")
+        
+        with open("chave_privada.txt", "w") as c:
+            c.write(f"{self.d},{self.n}")
+    
     def _gerar_arquivo_params(self):
         
-        with open("chaves.txt", "w") as c:
+        with open("testes.txt", "w") as c:
             c.write(f"p = {self.p}\n")
             c.write(f"q = {self.q}\n")
             c.write(f"totiente_n = {self.totiente_n}\n")
@@ -107,5 +145,12 @@ class RSA():
 
 if __name__ == "__main__":
     rsa = RSA()
-    print(rsa.criptografar("teste", True))
-    print(rsa.descriptografar("747337473", 43, 77))
+    rsa.criar_chaves()
+    
+    with open("chave_publica.txt") as f:
+        chave = f.read()
+    
+    texto = rsa.criptografar("teste", chave)
+    print(texto)
+    print(rsa.descriptografar(texto))
+    
