@@ -37,8 +37,10 @@ class RSA():
         while ((self.d * self.e) % self.totiente_n != 1) and self.d < self.totiente_n:
             self.d += 1
 
-        self._gerar_arquivo_chaves()
-        self._gerar_arquivo_params()
+        return {
+            "private_key": f"{self.e}, {self.n}",
+            "public_key": f"{self.d}, {self.n}"
+        }
     
     def criptografar(self, texto, chave):
         chaves = chave.split(",")
@@ -74,6 +76,7 @@ class RSA():
         i = 0
         for t in texto:
             print(f"descriptografando: {i/len(texto)*100}%", end="\r")
+            t = t.replace("\x00", "")
             m = (int(t) ** d) % n
             texto_descript += chr(m)
             i+=1
@@ -146,11 +149,4 @@ class RSA():
 if __name__ == "__main__":
     rsa = RSA()
     rsa.criar_chaves()
-    
-    with open("chave_publica.txt") as f:
-        chave = f.read()
-    
-    texto = rsa.criptografar("teste", chave)
-    print(texto)
-    print(rsa.descriptografar(texto))
     
